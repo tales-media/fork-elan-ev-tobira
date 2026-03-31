@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      all:
+        patterns: [ "*" ]
+    labels:
+      - kind/dependency
+    commit-message:
+      prefix: um
