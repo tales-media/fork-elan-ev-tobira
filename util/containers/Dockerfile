@@ -8,7 +8,7 @@ FROM --platform=${BUILDPLATFORM} docker.io/library/node:${NODE_VERSION}-alpine A
 
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json /build/
-RUN npm i
+RUN npm ci
 
 COPY frontend .
 RUN npm ci
