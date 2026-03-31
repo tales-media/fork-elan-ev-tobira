@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
-ARG NODE_VERSION
-ARG RUST_VERSION
+ARG NODE_VERSION=lts
+ARG RUST_VERSION=1
 
 
 FROM --platform=${BUILDPLATFORM} docker.io/library/node:${NODE_VERSION}-alpine AS frontend-build
