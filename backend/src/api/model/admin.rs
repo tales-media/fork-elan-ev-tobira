@@ -154,7 +154,7 @@ impl AdminDbInfo {
             known_groups: "(select count(*) from known_groups)",
             user_sessions: "(select count(*) from user_sessions)",
             user_sessions_unique: "(select count(distinct username) from user_sessions)",
-            db_size: "(select pg_database_size(current_database()))",
+            db_size: "(select 0::bigint as pg_database_size)",
         );
         let row = ctx.db.query_one(&format!("select {selection}"), &[]).await?;
 
