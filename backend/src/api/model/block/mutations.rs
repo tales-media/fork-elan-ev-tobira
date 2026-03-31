@@ -192,61 +192,45 @@ impl BlockValue {
 
         let db = &context.db;
 
-        // The next query will swap two blocks' indices;
-        // during the execution of that statement a moment will exist
-        // in which two blocks of a realm have the same index.
-        // Since this violates one of our constraints, we defer it.
-        db.execute("set constraints index_unique_in_realm deferred", &[]).await?;
+        // Swap the two indexes using a temporary index at the end of the list:
+        //   indexA                     -> temp index (max index + 1)
+        //   indexB                     -> indexA
+        //   temp index (max index + 1) -> indexB
 
-        // This query is a bit involved, but this allows us to do the full swap in one
-        // go, including "bound checking".
-        //
-        // The query basically joins the tables `blocks`, `realms` and two temporary
-        // tables. The first temporary contains two rows with the
-        // `(old_index, new_index)` and `(new_index, old_index)` pairs. The second only
-        // contains the number of blocks for that realm. The join conditions are
-        // `realm = realms.id` and `blocks.index = updates.old_index`, meaning that
-        // the resulting joined table should contain exactly two rows if both indices
-        // are valid. For these two rows, the `update` is performed.
-        //
-        // `updates.new_index < count` and `updates.new_index >= 0` are only to make
-        // sure the new index is in bounds.
-        let query = format!(
-            "update blocks \
-                set index = updates.new_index \
-                from (values \
-                    ($1::smallint, $2::smallint), \
-                    ($2::smallint, $1::smallint) \
-                ) as updates(old_index, new_index), ( \
-                    select count(*) as count from blocks \
-                    where realm = $3 \
-                ) as count \
-                where realm = $3 \
-                and blocks.index = updates.old_index \
-                and updates.new_index < count \
-                and updates.new_index >= 0",
-        );
-        let rows_modified = db
-            .execute(
-                &query,
-                &[
-                    &(i16::try_from(index_a)
-                        .map_err(|_| invalid_input!("`indexA` is not a valid block index"))?),
-                    &(i16::try_from(index_b)
-                        .map_err(|_| invalid_input!("`indexB` is not a valid block index"))?),
-                    &realm.key,
-                ],
-            )
-            .await?;
+        db.execute("\
+            update blocks \
+            set index = (select count(*) as count from blocks where realm = $1) \
+            where realm = $1 \
+            and blocks.index = $2 \
+        ", &[
+            &realm.key,
+            &(i16::try_from(index_a)
+                .map_err(|_| invalid_input!("`indexA` is not a valid block index"))?),
+        ]).await?;
 
-        // TODO Actually reset to whatever it was before, but that needs nested transactions
-        db.execute("set constraints index_unique_in_realm immediate", &[]).await?;
+        db.execute("\
+            update blocks \
+            set index = $2 \
+            where realm = $1 \
+            and blocks.index = $3 \
+        ", &[
+            &realm.key,
+            &(i16::try_from(index_a)
+                .map_err(|_| invalid_input!("`indexA` is not a valid block index"))?),
+            &(i16::try_from(index_b)
+                .map_err(|_| invalid_input!("`indexB` is not a valid block index"))?),
+        ]).await?;
 
-        // We will get the block id twice for two updated rows if everything
-        // goes according to plan.
-        if rows_modified != 2 {
-            return Err(invalid_input!("`indexA`, `indexB` wasn't a valid block index"));
-        }
+        db.execute("\
+            update blocks \
+            set index = $2 \
+            where realm = $1 \
+            and blocks.index = (select count(*) as count from blocks where realm = $1) \
+        ", &[
+            &realm.key,
+            &(i16::try_from(index_b)
+                .map_err(|_| invalid_input!("`indexB` is not a valid block index"))?),
+        ]).await?;
 
         Ok(realm)
     }

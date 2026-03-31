@@ -18,7 +18,8 @@ create type event_track as (
     uri text,
     flavor text,
     mimetype text,
-    resolution integer[2]
+    resolution integer[2],
+    is_master bool
 );
 
 create table events (
