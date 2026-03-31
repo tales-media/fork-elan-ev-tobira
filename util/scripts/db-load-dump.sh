@@ -32,6 +32,10 @@ else
     xz -d "$cache_folder/$filename.xz"
 fi
 
+if [ ! -f "$cache_folder/$filename-shio" ]; then
+    util/scripts/shio-convert-db-dump.sh "$filename"
+fi
+
 # Prompt to notify that the current DB is deleted.
 echo
 echo
@@ -47,4 +51,4 @@ docker compose -f "$basedir/../containers/docker-compose.yml" \
     --clean \
     --create \
     --if-exists \
-    < "$cache_folder/$filename"
+    < "$cache_folder/$filename-shio"
