@@ -4,7 +4,7 @@ ARG NODE_VERSION
 ARG RUST_VERSION
 
 
-FROM --platform=${BUILDPLATFORM} docker.io/node:${NODE_VERSION}-alpine AS frontend-build
+FROM --platform=${BUILDPLATFORM} docker.io/library/node:${NODE_VERSION}-alpine AS frontend-build
 
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json /build/
@@ -16,7 +16,7 @@ RUN npx relay-compiler
 RUN npx webpack --mode=production
 
 
-FROM docker.io/rust:${RUST_VERSION}-alpine AS backend-build
+FROM docker.io/library/rust:${RUST_VERSION}-alpine AS backend-build
 
 ENV CFLAGS    "-fdebug-prefix-map=/root/.cargo/registry/src/github.com-1ecc6299db9ec823/=__dep__"
 ENV RUSTFLAGS "--remap-path-prefix=/build/backend=<src> --remap-path-prefix=/root/.cargo/registry/src/github.com-1ecc6299db9ec823/=<dep>"
@@ -46,7 +46,7 @@ RUN cp "target/${RUST_TARGET}/release/tobira" .
 RUN objcopy --compress-debug-sections tobira
 
 
-FROM docker.io/rust:${RUST_VERSION}-alpine AS rootfs
+FROM docker.io/library/rust:${RUST_VERSION}-alpine AS rootfs
 RUN mkdir /rootfs \
  && apk add -p /rootfs --no-cache --initdb \
  && cp -R /etc/apk/repositories /etc/apk/keys /rootfs/etc/apk/ \
