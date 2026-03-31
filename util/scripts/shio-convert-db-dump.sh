@@ -41,11 +41,11 @@ db_init() {
 db_dump() {
   docker exec -i tobira-tmp-shio \
     pg_dump \
-      --format custom \
+      --format plain \
       --dbname 'postgresql://tobira:tobira@localhost/tobira' \
       --compress 0 \
       --quote-all-identifiers \
-      > "$cache_folder/$filename-shio"
+      > "$cache_folder/$filename-shio.sql"
 }
 
 db_exec() {

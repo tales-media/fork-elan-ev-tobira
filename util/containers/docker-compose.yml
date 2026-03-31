@@ -21,16 +21,25 @@ services:
 
   # A PostgreSQL database for Tobira.
   tobira-dev-database:
-    image: docker.io/library/postgres:12
+    image: docker.io/yugabytedb/yugabyte:2025.2.2.1-b1
     restart: unless-stopped
+    command:
+      - "bin/yugabyted"
+      - "start"
+      - "--tserver_flags=allowed_preview_flags_csv=ysql_yb_ddl_transaction_block_enabled,ysql_yb_ddl_transaction_block_enabled=true,enable_object_locking_for_table_locks=true"
+      - "--background=false"
     ports:
-      - 127.0.0.1:5432:5432
+      - 127.0.0.1:7001:7000   # cluster management
+      - 127.0.0.1:9000:9000   # node management
+      - 127.0.0.1:15433:15433 # metrics
+      - 127.0.0.1:5433:5433   # YSQL
+      - 127.0.0.1:9042:9042   # YCQL
     volumes:
-      - tobira-dev-postgres:/var/lib/postgresql/data
+      - tobira-dev-postgres:/root/var/data
     environment:
-      - POSTGRES_PASSWORD=tobira
-      - POSTGRES_USER=tobira
-      - POSTGRES_DB=tobira
+      - YSQL_PASSWORD=tobira
+      - YSQL_USER=tobira
+      - YSQL_DB=tobira
 
   # A MeiliSearch for Tobira.
   tobira-meilisearch:

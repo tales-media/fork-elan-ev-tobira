@@ -32,7 +32,7 @@ else
     xz -d "$cache_folder/$filename.xz"
 fi
 
-if [ ! -f "$cache_folder/$filename-shio" ]; then
+if [ ! -f "$cache_folder/$filename-shio.sql" ]; then
     util/scripts/shio-convert-db-dump.sh "$filename"
 fi
 
@@ -46,9 +46,5 @@ read -r
 set -x
 docker compose -f "$basedir/../containers/docker-compose.yml" \
     exec -T tobira-dev-database \
-    pg_restore \
-    --dbname 'postgresql://tobira:tobira@localhost/postgres' \
-    --clean \
-    --create \
-    --if-exists \
-    < "$cache_folder/$filename-shio"
+    bash -c 'ysqlsh --echo-errors --dbname "postgresql://tobira:tobira@$(hostname)/tobira"' \
+    < "$cache_folder/$filename-shio.sql"
